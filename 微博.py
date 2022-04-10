@@ -1,6 +1,8 @@
 import requests
 from lxml import etree
 import json
+import time
+import pymongo
 
 #sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf-8')
 class GetPage:
@@ -32,30 +34,60 @@ class GetPage:
         return self.response
 
 def parseData(url):
+    print("正在爬取数据...")
     res = GetPage(url).get_page()
-    #data = res["data"]
-    hot_info = []
     data = res["data"]["realtime"]
-    #print(data)
-    for item in data:
-        temp = {}
-        temp["分类"] = item["category"]
-        temp["热门标题"] = item["word"]
-        temp["热门等级"] = item["label_name"]
-        temp["点击量"] = item["raw_hot"]
-        temp["热门排行"] = item["rank"]
-        hot_info.append(temp)
+    print("爬取数据完毕，正在对数据进行保存...")
+    # 对_id和集合名称用时间来命名
+    year = time.gmtime().tm_year
+    month = time.gmtime().tm_mon
+    day = time.gmtime().tm_mday
 
-    for item1 in hot_info:
-        print(item1)
+    if month == 1:
+        Month = "January"
+    elif month == 2:
+        Month = "February"
+    elif month == 3:
+        Month = "March"
+    elif month == 4:
+        Month = "April"
+    elif month == 5:
+        Month = "May"
+    elif month == 6:
+        Month = "June"
+    elif month == 7:
+        Month = "July"
+    elif month == 8:
+        Month = "August"
+    elif month == 9:
+        Month = "September"
+    elif month == 10:
+        Month = "October"
+    elif month == 11:
+        Month = "November"
+    elif month == 12:
+        Month = "December"
 
-    #print(res)
-    
+    if month < 10:
+        if day < 10:
+            _id = f"{year}0{month}0{day}"
+        else:
+            _id = f"{year}0{month}{day}"
+    else:
+        if day < 10:
+            _id = f"{year}{month}0{day}"
+        else:
+            _id = f"{year}{month}{day}"
+    collect_name = Month + "_"  + str(year)
 
+    # 利用MongoDB将数据保存
+    client =  pymongo.MongoClient(host="127.0.0.1",port=27017)
+    collection = client["weibo_hotSearch"][collect_name]
+    collection.insert_one({"_id":_id,"realtime":data})
+    print("数据保存完成")
 def main():
     url_base = "https://weibo.com/ajax/side/hotSearch"
     parseData(url_base)
-
 
 if __name__ == "__main__":
     main()
